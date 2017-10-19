@@ -45,6 +45,7 @@ Handler createStaticHandler(String fileSystemPath,
     bool listDirectories: false,
     bool useHeaderBytesForContentType: false,
     MimeTypeResolver contentTypeResolver}) {
+  //
   var rootDir = new Directory(fileSystemPath);
   if (!rootDir.existsSync()) {
     throw new ArgumentError('A directory corresponding to fileSystemPath '
@@ -61,12 +62,12 @@ Handler createStaticHandler(String fileSystemPath,
 
   contentTypeResolver ??= _defaultMimeTypeResolver;
 
-  return (Request request) {
+  return (Request request) async {
     var segs = [fileSystemPath]..addAll(request.url.pathSegments);
 
     var fsPath = p.joinAll(segs);
 
-    var entityType = FileSystemEntity.typeSync(fsPath, followLinks: true);
+    var entityType = await FileSystemEntity.type(fsPath, followLinks: true);
 
     File file;
 
@@ -86,7 +87,7 @@ Handler createStaticHandler(String fileSystemPath,
     }
 
     if (!serveFilesOutsidePath) {
-      var resolvedPath = file.resolveSymbolicLinksSync();
+      var resolvedPath = await file.resolveSymbolicLinks();
 
       // Do not serve a file outside of the original fileSystemPath
       if (!p.isWithin(fileSystemPath, resolvedPath)) {
@@ -105,7 +106,7 @@ Handler createStaticHandler(String fileSystemPath,
     return _handleFile(request, file, () async {
       if (useHeaderBytesForContentType) {
         var length = math.min(
-            contentTypeResolver.magicNumbersMaxLength, file.lengthSync());
+            contentTypeResolver.magicNumbersMaxLength, await file.length());
 
         var byteSink = new ByteAccumulatorSink();
 
